@@ -14,8 +14,27 @@
 void delaz_(float *lat1, float *lon1, float *lat2, float *lon2, float *dist, float *az, float *baz);
 int getcols( const char * const line, const char * const delim, char ***out_storage);
 void strip(char *s);
-void assign_cols_flatfile(char **columns, float *stLat, float *stLon, float *evMag, float *evLon, float *evLat, float *evDep, int *evYear, int *evMon, int *evDay, int *evHour, int *evMin, float *evSec, char *network, char * stationNm);
+void assign_cols_ABF(char **columns, float *stLon, float *stLat, float *vs30, float *amp2s, float *amp3s, float *amp5s, float *amp10s, char *stationName);
 char * replace(char const * const original, char const * const pattern, char const * const replacement );
+
+/*--------------------------------------------------------------------------*/
+void assign_cols_ABF(char **columns, float *stLon, float *stLat, float *vs30, float *amp2s, float *amp3s, float *amp5s, float *amp10s, char *stationName)
+/*--------------------------------------------------------------------------*/
+{
+//
+  *stLon=atof(columns[1]);
+  *stLat=atof(columns[2]);
+  *vs30=atof(columns[3]);
+  *amp2s=atof(columns[9]);
+  *amp3s=atof(columns[10]);
+  *amp5s=atof(columns[11]);
+  *amp10s=atof(columns[12]);
+  stationName=strcpy(stationName,columns[13]);
+//  fprintf(stderr,"assign_cols_flatfile, evMag/stLat: %f %f\n", *evMag, *stLat);
+//  fprintf(stderr,"assign_cols_flatfile, network/stationNm: %s %s\n", network, stationNm);
+
+}
+
 
 /*--------------------------------------------------------------------------*/
 void strip(char *s)
@@ -37,7 +56,14 @@ int main (int argc, char *argv[])
 /*--------------------------------------------------------------------------*/
 {
   FILE *fpABF, *fpEAF, *fpGMM, *fpout;
+  int cols_found;
+  float stLon, stLat, vs30, amp2s, amp3s, amp5s, amp10s;
   char fileABF[200], fileEAF[200], fileGMM[200], fileout[200];
+  char buff[BUFFLEN];
+  char stationName[20];
+  char **columns;
+  char delim[] = ",";
+
 
 /* CHECK INPUT ARGUMENTS */
   if ( argc != 5 ) {
@@ -79,6 +105,26 @@ int main (int argc, char *argv[])
 //  output file
   fpout = fopen(fileout,"w");
   fprintf(stderr,"Writing to file, %s\n\n", fileout);
+
+// read header lines from CyberShake ABF file
+  fgets(buff,BUFFLEN,fpABF);
+
+// loop through all sites in CyberShake ABF file
+  while( fgets(buff,BUFFLEN,fpABF) ) {
+    if ( strlen(buff) > BUFFLEN ) {
+      fprintf(stderr,"Increase BUFFLEN from %d.\n", (int)BUFFLEN);
+      exit(1);
+    }
+    strip(buff);
+//    fprintf(fpFlatFileMod,"%s,",buff);
+    columns = NULL;
+    cols_found = getcols(buff, delim, &columns);
+//    assign_cols_ABF(columns,
+    assign_cols_ABF(columns, &stLon, &stLat, &vs30, &amp2s, &amp3s, &amp5s, &amp10s, stationName);
+//    fprintf(stderr,"%f %f %f %f %f %f %f %s\n", stLon, stLat, vs30, amp2s, amp3s, amp5s, amp10s, stationName);
+// loop through EAF file and extract 
+    free(columns);
+  }
 
 
 // close files
