@@ -62,6 +62,7 @@ int main (int argc, char *argv[])
   char buff[BUFFLEN];
   char stationName[20];
   char **columns;
+  char **columns2;
   char delim[] = ",";
 
 
@@ -121,7 +122,7 @@ int main (int argc, char *argv[])
     cols_found = getcols(buff, delim, &columns);
 //    assign_cols_ABF(columns,
     assign_cols_ABF(columns, &stLon, &stLat, &vs30, &amp2s, &amp3s, &amp5s, &amp10s, stationName);
-//    fprintf(stderr,"%f %f %f %f %f %f %f %s\n", stLon, stLat, vs30, amp2s, amp3s, amp5s, amp10s, stationName);
+    fprintf(stderr,"%f %f %f %f %f %f %f %s\n", stLon, stLat, vs30, amp2s, amp3s, amp5s, amp10s, stationName);
 // loop through EAF file and extract 
     free(columns);
   }
