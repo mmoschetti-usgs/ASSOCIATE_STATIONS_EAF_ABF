@@ -21,6 +21,9 @@ char * replace(char const * const original, char const * const pattern, char con
 void assign_cols_ABF(char **columns, float *stLon, float *stLat, float *vs30, float *amp2s, float *amp3s, float *amp5s, float *amp10s, char *stationName)
 /*--------------------------------------------------------------------------*/
 {
+  FILT *fp;
+  char fileout[200];
+
 //
   *stLon=atof(columns[1]);
   *stLat=atof(columns[2]);
@@ -33,7 +36,25 @@ void assign_cols_ABF(char **columns, float *stLon, float *stLat, float *vs30, fl
 //  fprintf(stderr,"assign_cols_flatfile, evMag/stLat: %f %f\n", *evMag, *stLat);
 //  fprintf(stderr,"assign_cols_flatfile, network/stationNm: %s %s\n", network, stationNm);
 
+// write ABF values to file--b-values with respect to GMPE (adjusted to Vs30=760 m/s)
+  sprintf(fileout,"AMP_FILES/amp_CS_%.3f_%.3f_%s.txt",*stLon,*stLat,stationName);
+  fprintf(stderr,"%s\n", fileout);
+  fp=fopen(fileout, "w");
+  fprintf(fp,"2.0 %.3f\n3.0 %.3f\n5.0 %.3f\n10.0 %.3f\n", *amp2s, *amp3s, *amp5s, *amp10s);
+  fclose(fp);
+  
 }
+
+/*--------------------------------------------------------------------------*/
+void assign_cols_EAF(char **columns, float *stLon, float *stLat)
+/*--------------------------------------------------------------------------*/
+{
+  *stLon=atof(columns[1]);
+  *stLat=atof(columns[2]);
+//  sprintf(fileout,"AMP_FILES/amp_CS_%.3f_%.3f_%s.txt",*stLon,*stLat,stationName);
+//  fprintf(stderr,"%s\n", fileout);
+}
+
 
 
 /*--------------------------------------------------------------------------*/
@@ -58,24 +79,25 @@ int main (int argc, char *argv[])
   FILE *fpABF, *fpEAF, *fpGMM, *fpout;
   int cols_found;
   float stLon, stLat, vs30, amp2s, amp3s, amp5s, amp10s;
+  float lon, lat, dist, az, baz;
   char fileABF[200], fileEAF[200], fileGMM[200], fileout[200];
   char buff[BUFFLEN];
   char stationName[20];
-  char **columns;
+  char **columns, **columns_header;
   char **columns2;
   char delim[] = ",";
 
 
 /* CHECK INPUT ARGUMENTS */
-  if ( argc != 5 ) {
-    fprintf(stderr,"USAGE: %s [b-values, reference adjusted to Vs30=760 m/s] [EAF values] [GMPE values] [output file name]\n", argv[0]);
+  if ( argc != 4 ) {
+    fprintf(stderr,"USAGE: %s [b-values, reference adjusted to Vs30=760 m/s] [EAF values] [GMPE values]\n", argv[0]);
     fprintf(stderr,"Relocated catalog file, e.g., emm_c2_OK_KS_201702_add_all2.csv\n");
     exit(1);
   }
   sscanf(argv[1],"%s", fileABF);
   sscanf(argv[2],"%s", fileEAF);
   sscanf(argv[3],"%s", fileGMM);
-  sscanf(argv[4],"%s", fileout);
+//  sscanf(argv[4],"%s", fileout);
 
 // Open flatfiles
 //ABF
@@ -121,10 +143,34 @@ int main (int argc, char *argv[])
     columns = NULL;
     cols_found = getcols(buff, delim, &columns);
 //    assign_cols_ABF(columns,
+//    fileout=sprintf("AMP_FILES/amp_CS_%.3f_%.3f_%s.txt",stLon,stLat,stationNameMod);
     assign_cols_ABF(columns, &stLon, &stLat, &vs30, &amp2s, &amp3s, &amp5s, &amp10s, stationName);
     fprintf(stderr,"%f %f %f %f %f %f %f %s\n", stLon, stLat, vs30, amp2s, amp3s, amp5s, amp10s, stationName);
-// loop through EAF file and extract 
     free(columns);
+    
+//  loop through EAF file, find matching location
+//  header information
+    fgets(buff,BUFFLEN,fpEAF);
+    strip(buff);
+    columns_header = NULL;
+    cols_found = getcols(buff, delim, &columns_header);
+    while( fgets(buff,BUFFLEN,fpEAF) ) {
+      strip(buff);
+      columns = NULL;
+      cols_found = getcols(buff, delim, &columns);
+      assign_cols_EAF(columns, &lon, &lat);
+      delaz_(&stLat,&stLon,&lat,&lon,&dist,&az,&baz);
+      if ( fabs(stLat-lat)<0.001 && fabs(stLon-lon)<0.001 && dist<0.05 ) {
+        fprintf(stderr,"MATCH: %f %f %f %f dist: %f\n", stLon, lon, stLat, lat, dist);
+        write_values_EAF(columns, &lon, &lat);
+        break;
+      }
+      free(columns);
+    }
+    rewind(fpEAF);
+    free(columns_header);
+
+// loop through EAF file and extract 
   }
 
 
