@@ -75,18 +75,18 @@ void assign_cols_EAF(char **columns, float *stLon, float *stLat)
 void write_values_EAF(char **columns_header, char **columns, float stLon, float stLat, int cols_found)
 /*--------------------------------------------------------------------------*/
 {
-//  FILE *fpout;
-  int cnt, cnt2;
-//  float meanVal[200], stdVal[200];
+  FILE *fpout;
+  int cnt, cnt2, cntPer;
+  float meanVal[200], stdVal[200];
+  float per_meanVal[200];
   char meanHeader[20]="lnEAF_mean_";
-  char colHeader1[20];
-  char colHeader[20];
+  char colHeader1[20], colHeader[20], per_string[10];
   char fileout[200];
 
 // loop over all column headers
 // REMOVE
 //  for(cnt=0;cnt<cols_found;cnt++) {
-  for(cnt=0;cnt<12;cnt++) {
+  for(cnt=0;cnt<15;cnt++) {
 // remove double quotes
     strcpy(colHeader1,columns_header[cnt]);
     for(cnt2=1;cnt2<strlen(colHeader1)-1;cnt2++) {
@@ -95,10 +95,19 @@ void write_values_EAF(char **columns_header, char **columns, float stLon, float 
     }
     colHeader[strlen(colHeader1)-2]='\0';
     fprintf(stderr,"%s %s %d\n", colHeader1, colHeader, strncmp(meanHeader, colHeader,10) );
+/*
     if ( strncmp(meanHeader, colHeader,10)==0 ) {
-      fprintf(stderr,"Match: %s\n", colHeader, columns[cnt]);
-      exit(1);
+      fprintf(stderr,"Match: %s", colHeader);
+      cntPer=0;
+      for(cnt2=11; cnt2<strlen(colHeader); cnt2++) {
+//        fprintf(stderr,"%d %c\n", cnt2, colHeader[cnt2]);
+        per_string[cntPer]=colHeader[cnt2];
+        cntPer++;
+      }
+      per_string[cntPer]='\0';
+      fprintf(stderr,"%d %s %s\n", strlen(colHeader), colHeader, per_string);
     }
+*/
 
 
   }
