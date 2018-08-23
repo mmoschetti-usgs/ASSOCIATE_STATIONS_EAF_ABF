@@ -16,6 +16,7 @@ int getcols( const char * const line, const char * const delim, char ***out_stor
 void strip(char *s);
 void assign_cols_ABF(char **columns, float *stLon, float *stLat, float *vs30, float *amp2s, float *amp3s, float *amp5s, float *amp10s, char *stationName);
 char * replace(char const * const original, char const * const pattern, char const * const replacement );
+void write_values_EAF(char **columns_header, char **columns, float stLon, float stLat, int cols_found);
 
 
 /*--------------------------------------------------------------------------*/
@@ -71,19 +72,38 @@ void assign_cols_EAF(char **columns, float *stLon, float *stLat)
 }
 
 /*--------------------------------------------------------------------------*/
-void write_cols_EAF(char **columns_header, char **columns, float stLon, float stLat, int cols_found)
+void write_values_EAF(char **columns_header, char **columns, float stLon, float stLat, int cols_found)
 /*--------------------------------------------------------------------------*/
 {
-  int cnt;
-  float meanVal[200], stdVal[200];
+//  FILE *fpout;
+  int cnt, cnt2;
+//  float meanVal[200], stdVal[200];
+  char meanHeader[20]="lnEAF_mean_";
+  char colHeader1[20];
+  char colHeader[20];
+  char fileout[200];
 
-  for(cnt=0;cnt<cols_found;cnt++) {
-    if strstr(columns[ii], 'lnEAF_mean_') {
+// loop over all column headers
+// REMOVE
+//  for(cnt=0;cnt<cols_found;cnt++) {
+  for(cnt=0;cnt<12;cnt++) {
+// remove double quotes
+    strcpy(colHeader1,columns_header[cnt]);
+    for(cnt2=1;cnt2<strlen(colHeader1)-1;cnt2++) {
+      colHeader[cnt2-1]=colHeader1[cnt2];
+//      fprintf(stderr,"%c %s\n", colHeader1[cnt2], colHeader);
     }
+    colHeader[strlen(colHeader1)-2]='\0';
+    fprintf(stderr,"%s %s %d\n", colHeader1, colHeader, strncmp(meanHeader, colHeader,10) );
+    if ( strncmp(meanHeader, colHeader,10)==0 ) {
+      fprintf(stderr,"Match: %s\n", colHeader, columns[cnt]);
+      exit(1);
+    }
+
+
   }
 //  *stLon=atof(columns[1]);
 
-//
   sprintf(fileout,"AMP_FILES/amp_EAF_%.3f_%.3f.txt",stLon,stLat);
   fprintf(stderr,"%s\n", fileout);
 }
@@ -180,7 +200,7 @@ int main (int argc, char *argv[])
 //  loop through EAF file, find matching location
 //  header information
     fgets(buff,BUFFLEN,fpEAF);
-    strip(buff);
+    buff[strcspn(buff, "\n")] = 0;
     columns_header = NULL;
     cols_found = getcols(buff, delim, &columns_header);
     while( fgets(buff,BUFFLEN,fpEAF) ) {
@@ -192,6 +212,7 @@ int main (int argc, char *argv[])
       if ( fabs(stLat-lat)<0.001 && fabs(stLon-lon)<0.001 && dist<0.05 ) {
         fprintf(stderr,"MATCH: %f %f %f %f dist: %f\n", stLon, lon, stLat, lat, dist);
         write_values_EAF(columns_header,columns, lon, lat, cols_found);
+exit(1);
         break;
       }
       free(columns);
