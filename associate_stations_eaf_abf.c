@@ -75,18 +75,22 @@ void assign_cols_EAF(char **columns, float *stLon, float *stLat)
 void write_values_EAF(char **columns_header, char **columns, float stLon, float stLat, int cols_found)
 /*--------------------------------------------------------------------------*/
 {
-//  FILE *fpout;
-  int cnt, cnt2;
+  FILE *fid;
+  int cnt, cnt2, cntPer, cntMean=0, cntStd=0;
 //  float meanVal[200], stdVal[200];
+  float per_arr[200], meanVal_arr[200];
+  float perS_arr[200], stdVal_arr[200];
   char meanHeader[20]="lnEAF_mean_";
+  char stdHeader[20]="lnEAF_sd_";
   char colHeader1[20];
   char colHeader[20];
   char fileout[200];
+  char per_string[20];
 
 // loop over all column headers
 // REMOVE
-//  for(cnt=0;cnt<cols_found;cnt++) {
-  for(cnt=0;cnt<12;cnt++) {
+  for(cnt=0;cnt<cols_found;cnt++) {
+//  for(cnt=0;cnt<15;cnt++) {
 // remove double quotes
     strcpy(colHeader1,columns_header[cnt]);
     for(cnt2=1;cnt2<strlen(colHeader1)-1;cnt2++) {
@@ -94,18 +98,49 @@ void write_values_EAF(char **columns_header, char **columns, float stLon, float 
 //      fprintf(stderr,"%c %s\n", colHeader1[cnt2], colHeader);
     }
     colHeader[strlen(colHeader1)-2]='\0';
-    fprintf(stderr,"%s %s %d\n", colHeader1, colHeader, strncmp(meanHeader, colHeader,10) );
+//    fprintf(stderr,"%s %s %d %s\n", colHeader1, colHeader, strncmp(meanHeader, colHeader,10), columns[cnt] );
     if ( strncmp(meanHeader, colHeader,10)==0 ) {
-      fprintf(stderr,"Match: %s\n", colHeader, columns[cnt]);
-      exit(1);
+      cntPer=0;
+      for(cnt2=11; cnt2<strlen(colHeader); cnt2++) {
+        per_string[cntPer]=colHeader[cnt2];
+        cntPer++;
+      }
+      per_string[cntPer]='\0';
+//      fprintf(stderr,"Match-mean: %s %s\n", colHeader, per_string);
+      per_arr[cntMean]=atof(per_string);
+      meanVal_arr[cntMean]=atof(columns[cnt]);
+//fprintf(stderr,"%f %f\n", per_arr[cntMean], meanVal_arr[cntMean]);
+      cntMean++;
     }
-
-
+    else if ( strncmp(stdHeader, colHeader,9)==0 ) {
+      cntPer=0;
+      for(cnt2=11; cnt2<strlen(colHeader); cnt2++) {
+        per_string[cntPer]=colHeader[cnt2];
+        cntPer++;
+      }
+      per_string[cntPer]='\0';
+//      fprintf(stderr,"Match-sd: %s %s\n", colHeader, per_string);
+      perS_arr[cntStd]=atof(per_string);
+      stdVal_arr[cntStd]=atof(columns[cnt]);
+//fprintf(stderr,"%f %f\n", perS_arr[cntStd], stdVal_arr[cntStd]);
+      cntStd++;
+    }
   }
+
+// write mean/std values to file
+  sprintf(fileout,"AMP_FILES/amp_EAF_%.3f_%.3f.txt",stLon,stLat);
+//  fprintf(stderr,"%s\n", fileout);
+  fid=fopen(fileout,"w");
+  for(cnt=0; cnt<cntMean; cnt++) {
+//    fprintf(stderr,"%f %f %f %f\n", per_arr[cnt], perS_arr[cnt], meanVal_arr[cnt], stdVal_arr[cnt]);
+    if ( stdVal_arr[cnt]>0 ) {
+      fprintf(fid,"%f %f %f %f\n", per_arr[cnt], perS_arr[cnt], meanVal_arr[cnt], stdVal_arr[cnt]);
+    }
+  }
+  fclose(fid);
+
 //  *stLon=atof(columns[1]);
 
-  sprintf(fileout,"AMP_FILES/amp_EAF_%.3f_%.3f.txt",stLon,stLat);
-  fprintf(stderr,"%s\n", fileout);
 }
 
 
@@ -210,7 +245,7 @@ int main (int argc, char *argv[])
       assign_cols_EAF(columns, &lon, &lat);
       delaz_(&stLat,&stLon,&lat,&lon,&dist,&az,&baz);
       if ( fabs(stLat-lat)<0.001 && fabs(stLon-lon)<0.001 && dist<0.05 ) {
-        fprintf(stderr,"MATCH: %f %f %f %f dist: %f\n", stLon, lon, stLat, lat, dist);
+//        fprintf(stderr,"MATCH: %f %f %f %f dist: %f\n", stLon, lon, stLat, lat, dist);
         write_values_EAF(columns_header,columns, lon, lat, cols_found);
 exit(1);
         break;
