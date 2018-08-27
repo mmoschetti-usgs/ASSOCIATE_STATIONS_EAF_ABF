@@ -62,7 +62,7 @@ void assign_cols_ABF(char **columns, float *stLon, float *stLat, float *vs30, fl
 }
 
 /*--------------------------------------------------------------------------*/
-void assign_cols_EAF(char **columns, float *stLon, float *stLat)
+void assign_cols_EAF_GMM(char **columns, float *stLon, float *stLat)
 /*--------------------------------------------------------------------------*/
 {
   *stLon=atof(columns[1]);
@@ -242,7 +242,29 @@ int main (int argc, char *argv[])
       strip(buff);
       columns = NULL;
       cols_found = getcols(buff, delim, &columns);
-      assign_cols_EAF(columns, &lon, &lat);
+      assign_cols_EAF_GMM(columns, &lon, &lat);
+      delaz_(&stLat,&stLon,&lat,&lon,&dist,&az,&baz);
+      if ( fabs(stLat-lat)<0.001 && fabs(stLon-lon)<0.001 && dist<0.05 ) {
+//        fprintf(stderr,"MATCH: %f %f %f %f dist: %f\n", stLon, lon, stLat, lat, dist);
+        write_values_EAF(columns_header,columns, lon, lat, cols_found);
+        break;
+      }
+      free(columns);
+    }
+    rewind(fpEAF);
+    free(columns_header);
+
+// loop through GMPE ampe file, find matching location/coordinate
+//  header information
+    fgets(buff,BUFFLEN,fpGMM);
+    buff[strcspn(buff, "\n")] = 0;
+    columns_header = NULL;
+    cols_found = getcols(buff, delim, &columns_header);
+    while( fgets(buff,BUFFLEN,fpGMM) ) {
+      strip(buff);
+      columns = NULL;
+      cols_found = getcols(buff, delim, &columns);
+      assign_cols_EAF_GMM(columns, &lon, &lat);
       delaz_(&stLat,&stLon,&lat,&lon,&dist,&az,&baz);
       if ( fabs(stLat-lat)<0.001 && fabs(stLon-lon)<0.001 && dist<0.05 ) {
 //        fprintf(stderr,"MATCH: %f %f %f %f dist: %f\n", stLon, lon, stLat, lat, dist);
@@ -254,6 +276,7 @@ exit(1);
     }
     rewind(fpEAF);
     free(columns_header);
+
 
 // loop through EAF file and extract 
   }
