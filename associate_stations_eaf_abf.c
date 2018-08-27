@@ -71,6 +71,66 @@ void assign_cols_EAF_GMM(char **columns, float *stLon, float *stLat)
 //  fprintf(stderr,"%s\n", fileout);
 }
 
+
+/*--------------------------------------------------------------------------*/
+void write_values_GMM(char **columns_header, char **columns, float stLon, float stLat, int cols_found)
+/*--------------------------------------------------------------------------*/
+{
+  FILE *fid;
+  int cnt, cnt2, cntPer, cntMean=0, cntStd=0;
+//  float meanVal[200], stdVal[200];
+  float per_arr[200], meanVal_arr[200];
+  char meanHeader[50]="BSSA_Fs_Vs30_best_z1_s4_";
+  char colHeader1[50];
+  char colHeader[50];
+  char fileout[200];
+  char per_string[50];
+
+// loop over all column headers
+// REMOVE
+  for(cnt=0;cnt<cols_found;cnt++) {
+//  for(cnt=0;cnt<15;cnt++) {
+// remove double quotes
+    strcpy(colHeader1,columns_header[cnt]);
+    for(cnt2=1;cnt2<strlen(colHeader1)-1;cnt2++) {
+      colHeader[cnt2-1]=colHeader1[cnt2];
+//      fprintf(stderr,"%c %s\n", colHeader1[cnt2], colHeader);
+    }
+    colHeader[strlen(colHeader1)-2]='\0';
+//    fprintf(stderr,"%s %s %d %s\n", colHeader1, colHeader, strncmp(meanHeader, colHeader,10), columns[cnt] );
+    if ( strncmp(meanHeader, colHeader,23)==0 ) {
+      cntPer=0;
+      for(cnt2=24; cnt2<strlen(colHeader); cnt2++) {
+        per_string[cntPer]=colHeader[cnt2];
+        cntPer++;
+      }
+      per_string[cntPer]='\0';
+//      fprintf(stderr,"Match-mean: %s %s\n", colHeader, per_string);
+      per_arr[cntMean]=atof(per_string);
+      meanVal_arr[cntMean]=atof(columns[cnt]);
+fprintf(stderr,"%f %f\n", per_arr[cntMean], meanVal_arr[cntMean]);
+exit(1);
+      cntMean++;
+    }
+  }
+
+// write mean/std values to file
+  sprintf(fileout,"AMP_FILES/amp_BSSA_%.3f_%.3f.txt",stLon,stLat);
+//  fprintf(stderr,"%s\n", fileout);
+  fid=fopen(fileout,"w");
+  for(cnt=0; cnt<cntMean; cnt++) {
+//    fprintf(stderr,"%f %f %f %f\n", per_arr[cnt], perS_arr[cnt], meanVal_arr[cnt], stdVal_arr[cnt]);
+    if ( meanVal_arr[cnt]>0 ) {
+      fprintf(fid,"%f %f\n", per_arr[cnt], meanVal_arr[cnt]);
+    }
+  }
+  fclose(fid);
+
+//  *stLon=atof(columns[1]);
+
+}
+
+
 /*--------------------------------------------------------------------------*/
 void write_values_EAF(char **columns_header, char **columns, float stLon, float stLat, int cols_found)
 /*--------------------------------------------------------------------------*/
@@ -232,7 +292,7 @@ int main (int argc, char *argv[])
 //    fprintf(stderr,"%f %f %f %f %f %f %f %s\n", stLon, stLat, vs30, amp2s, amp3s, amp5s, amp10s, stationName);
     free(columns);
     
-//  loop through EAF file, find matching location
+//  EAF file, loop to find matching location
 //  header information
     fgets(buff,BUFFLEN,fpEAF);
     buff[strcspn(buff, "\n")] = 0;
@@ -254,7 +314,7 @@ int main (int argc, char *argv[])
     rewind(fpEAF);
     free(columns_header);
 
-// loop through GMPE ampe file, find matching location/coordinate
+// GMPE amp file, find matching location/coordinate
 //  header information
     fgets(buff,BUFFLEN,fpGMM);
     buff[strcspn(buff, "\n")] = 0;
@@ -268,13 +328,13 @@ int main (int argc, char *argv[])
       delaz_(&stLat,&stLon,&lat,&lon,&dist,&az,&baz);
       if ( fabs(stLat-lat)<0.001 && fabs(stLon-lon)<0.001 && dist<0.05 ) {
 //        fprintf(stderr,"MATCH: %f %f %f %f dist: %f\n", stLon, lon, stLat, lat, dist);
-        write_values_EAF(columns_header,columns, lon, lat, cols_found);
+        write_values_GMM(columns_header,columns, lon, lat, cols_found);
 exit(1);
         break;
       }
       free(columns);
     }
-    rewind(fpEAF);
+    rewind(fpGMM);
     free(columns_header);
 
 
