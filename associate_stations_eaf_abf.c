@@ -61,6 +61,9 @@ fprintf(stderr,"col14- %s END\n",columns[14]);
     stationNameMod[strlen(stationNameMod)-1]='\0';
     remove_all_chars(stationName,'"');
   }
+  else {
+    fprintf(stderr,"col13- %s END\n",columns[13]);
+  }
 
 // write ABF values to file--b-values with respect to GMPE (adjusted to Vs30=760 m/s)
 // modify station names to remove blank space, other characters
@@ -76,7 +79,7 @@ fprintf(stderr,"col14- %s END\n",columns[14]);
   fprintf(stderr,"Station Name: %s %s\n", stationName, stationNameMod);
 //  fprintf(stderr,"%s_%s_%s\n", columns[13], columns[14], columns[15]);
 //h
-  sprintf(fileout,"AMP_FILES/amp_CS_%.3f_%.3f_%s.txt",*stLon,*stLat,stationName);
+  sprintf(fileout,"AMP_FILES/amp_%.3f_%.3f_CS_%s.txt",*stLon,*stLat,stationName);
 //  fprintf(stderr,"%s\n", fileout);
   system("if [ ! -d AMP_FILES ]; then mkdir AMP_FILES; fi");
 //
@@ -138,7 +141,7 @@ void write_values_GMM(char **columns_header, char **columns, float stLon, float 
   }
 
 // write mean/std values to file
-  sprintf(fileout,"AMP_FILES/amp_BSSA_%.3f_%.3f.txt",stLon,stLat);
+  sprintf(fileout,"AMP_FILES/amp_%.3f_%.3f_BSSA.txt",stLon,stLat);
 //  fprintf(stderr,"%s\n", fileout);
   fid=fopen(fileout,"w");
   for(cnt=0; cnt<cntMean; cnt++) {
@@ -211,7 +214,7 @@ void write_values_EAF(char **columns_header, char **columns, float stLon, float 
   }
 
 // write mean/std values to file
-  sprintf(fileout,"AMP_FILES/amp_EAF_%.3f_%.3f.txt",stLon,stLat);
+  sprintf(fileout,"AMP_FILES/amp_%.3f_%.3f_EAF.txt",stLon,stLat);
 //  fprintf(stderr,"%s\n", fileout);
   fid=fopen(fileout,"w");
   for(cnt=0; cnt<cntMean; cnt++) {
@@ -360,9 +363,9 @@ int main (int argc, char *argv[])
 //      fprintf(stderr,"... Read columns from BSSA... %f %f\n", lon, lat);
       delaz_(&stLat,&stLon,&lat,&lon,&dist,&az,&baz);
       if ( fabs(stLat-lat)<0.001 && fabs(stLon-lon)<0.001 && dist<0.05 ) {
-        fprintf(stderr,"Match GMM: %f %f\n", stLon, stLat);
 //        fprintf(stderr,"MATCH: %f %f %f %f dist: %f\n", stLon, lon, stLat, lat, dist);
         write_values_GMM(columns_header,columns, lon, lat, cols_found);
+        fprintf(stderr,"Match GMM: %f %f\n", stLon, stLat);
         break;
       }
       free(columns);
