@@ -36,6 +36,7 @@ void assign_cols_ABF(char **columns, float *stLon, float *stLat, float *vs30, fl
 /*--------------------------------------------------------------------------*/
 {
   FILE *fp;
+  int cnt;
   char fileout[200], stationNameMod[50];
   char stationName1[200];
 
@@ -47,11 +48,34 @@ void assign_cols_ABF(char **columns, float *stLon, float *stLat, float *vs30, fl
   *amp3s=atof(columns[10]);
   *amp5s=atof(columns[11]);
   *amp10s=atof(columns[12]);
-  sprintf(stationName,"%s\0",columns[13]);
-  stationName[strlen(stationName)-1]='\0';
+  sprintf(stationName1,"%s\0",columns[13]);
+  stationName1[strlen(stationName1)-1]='\0';
+  strcpy(stationNameMod,stationName1);
+  remove_all_chars(stationNameMod,'"');
+  if ( strlen(stationName1) > strlen(stationNameMod) ) {
+    fprintf(stderr,"Multiple columns: %d %d\n", strlen(stationName1), strlen(stationName));
+fprintf(stderr,"col13- %s END\n",columns[13]);
+fprintf(stderr,"col14- %s END\n",columns[14]);
+//fprintf(stderr,"col15- %s END\n",columns[15]);
+    sprintf(stationNameMod,"%s %s\0",columns[13], columns[14]);
+    stationNameMod[strlen(stationNameMod)-1]='\0';
+    remove_all_chars(stationName,'"');
+  }
 
 // write ABF values to file--b-values with respect to GMPE (adjusted to Vs30=760 m/s)
-  fprintf(stderr,"Station Name: %s\n", stationName);
+// modify station names to remove blank space, other characters
+//  fprintf(stderr,"Station Name: %s\n", stationName);
+  remove_all_chars(stationNameMod,' ');
+  remove_all_chars(stationNameMod,'&');
+  remove_all_chars(stationNameMod,';');
+  remove_all_chars(stationNameMod,'.');
+  remove_all_chars(stationNameMod,'-');
+  for(cnt=0; cnt<20; cnt++) {
+    stationName[cnt]=stationNameMod[cnt];
+  }
+  fprintf(stderr,"Station Name: %s %s\n", stationName, stationNameMod);
+//  fprintf(stderr,"%s_%s_%s\n", columns[13], columns[14], columns[15]);
+//h
   sprintf(fileout,"AMP_FILES/amp_CS_%.3f_%.3f_%s.txt",*stLon,*stLat,stationName);
 //  fprintf(stderr,"%s\n", fileout);
   system("if [ ! -d AMP_FILES ]; then mkdir AMP_FILES; fi");
@@ -108,8 +132,7 @@ void write_values_GMM(char **columns_header, char **columns, float stLon, float 
 //      fprintf(stderr,"Match-mean: %s %s\n", colHeader, per_string);
       per_arr[cntMean]=atof(per_string);
       meanVal_arr[cntMean]=atof(columns[cnt]);
-fprintf(stderr,"%f %f\n", per_arr[cntMean], meanVal_arr[cntMean]);
-exit(1);
+//      fprintf(stderr,"%f %f\n", per_arr[cntMean], meanVal_arr[cntMean]);
       cntMean++;
     }
   }
@@ -174,7 +197,7 @@ void write_values_EAF(char **columns_header, char **columns, float stLon, float 
     }
     else if ( strncmp(stdHeader, colHeader,9)==0 ) {
       cntPer=0;
-      for(cnt2=11; cnt2<strlen(colHeader); cnt2++) {
+      for(cnt2=9; cnt2<strlen(colHeader); cnt2++) {
         per_string[cntPer]=colHeader[cnt2];
         cntPer++;
       }
@@ -194,7 +217,8 @@ void write_values_EAF(char **columns_header, char **columns, float stLon, float 
   for(cnt=0; cnt<cntMean; cnt++) {
 //    fprintf(stderr,"%f %f %f %f\n", per_arr[cnt], perS_arr[cnt], meanVal_arr[cnt], stdVal_arr[cnt]);
     if ( stdVal_arr[cnt]>0 ) {
-      fprintf(fid,"%f %f %f %f\n", per_arr[cnt], perS_arr[cnt], meanVal_arr[cnt], stdVal_arr[cnt]);
+//      fprintf(fid,"%f %f %f %f\n", per_arr[cnt], perS_arr[cnt], meanVal_arr[cnt], stdVal_arr[cnt]);
+      fprintf(fid,"%f %f %f\n", per_arr[cnt], meanVal_arr[cnt], stdVal_arr[cnt]);
     }
   }
   fclose(fid);
@@ -305,6 +329,7 @@ int main (int argc, char *argv[])
       assign_cols_EAF_GMM(columns, &lon, &lat);
       delaz_(&stLat,&stLon,&lat,&lon,&dist,&az,&baz);
       if ( fabs(stLat-lat)<0.001 && fabs(stLon-lon)<0.001 && dist<0.05 ) {
+        fprintf(stderr,"Match EAF: %f %f\n", stLon, stLat);
 //        fprintf(stderr,"MATCH: %f %f %f %f dist: %f\n", stLon, lon, stLat, lat, dist);
         write_values_EAF(columns_header,columns, lon, lat, cols_found);
         break;
@@ -313,23 +338,31 @@ int main (int argc, char *argv[])
     }
     rewind(fpEAF);
     free(columns_header);
+    free(columns);
 
 // GMPE amp file, find matching location/coordinate
 //  header information
     fgets(buff,BUFFLEN,fpGMM);
+//fprintf(stderr,"buff %s", buff);
     buff[strcspn(buff, "\n")] = 0;
     columns_header = NULL;
+//fprintf(stderr,"HERE 1\n");
     cols_found = getcols(buff, delim, &columns_header);
+//fprintf(stderr,"HERE 2\n");
     while( fgets(buff,BUFFLEN,fpGMM) ) {
+//fprintf(stderr,"buff %s", buff);
       strip(buff);
       columns = NULL;
       cols_found = getcols(buff, delim, &columns);
+//      fprintf(stderr,"Reading columns from BSSA... ");
       assign_cols_EAF_GMM(columns, &lon, &lat);
+//      fprintf(stderr,"%s\n", columns); 
+//      fprintf(stderr,"... Read columns from BSSA... %f %f\n", lon, lat);
       delaz_(&stLat,&stLon,&lat,&lon,&dist,&az,&baz);
       if ( fabs(stLat-lat)<0.001 && fabs(stLon-lon)<0.001 && dist<0.05 ) {
+        fprintf(stderr,"Match GMM: %f %f\n", stLon, stLat);
 //        fprintf(stderr,"MATCH: %f %f %f %f dist: %f\n", stLon, lon, stLat, lat, dist);
         write_values_GMM(columns_header,columns, lon, lat, cols_found);
-exit(1);
         break;
       }
       free(columns);

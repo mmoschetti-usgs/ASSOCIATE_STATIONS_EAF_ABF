@@ -18,7 +18,7 @@ along with this program.  If not, see <http://w...content-available-to-author-on
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#define NCOLS 300
+#define NCOLS 600
 
 /* For more that 100 columns or lines (when delimiter = \n), minor modifications are needed. */
 int getcols( const char * const line, const char * const delim, char ***out_storage )

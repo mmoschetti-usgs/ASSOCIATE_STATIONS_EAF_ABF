@@ -1,5 +1,5 @@
 #define R 6371
-#define BUFFLEN 7000
+#define BUFFLEN 15000
 #define NEVENTS 5000
 
 // structures
