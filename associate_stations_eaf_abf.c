@@ -36,9 +36,9 @@ void assign_cols_ABF(char **columns, float *stLon, float *stLat, float *vs30, fl
 /*--------------------------------------------------------------------------*/
 {
   FILE *fp;
-  int cnt;
-  char fileout[200], stationNameMod[50];
-  char stationName1[200];
+  int cnt, maxCharStNm=20;
+  char fileout[200]; 
+  char stationNameMod[200], stationName1[200];
 
 //
   *stLon=atof(columns[1]);
@@ -73,9 +73,11 @@ fprintf(stderr,"col14- %s END\n",columns[14]);
   remove_all_chars(stationNameMod,';');
   remove_all_chars(stationNameMod,'.');
   remove_all_chars(stationNameMod,'-');
-  for(cnt=0; cnt<20; cnt++) {
+  remove_all_chars(stationNameMod,'"');
+  for(cnt=0; cnt<maxCharStNm; cnt++) {
     stationName[cnt]=stationNameMod[cnt];
   }
+  stationName[maxCharStNm]='\0';
   fprintf(stderr,"Station Name: %s %s\n", stationName, stationNameMod);
 //  fprintf(stderr,"%s_%s_%s\n", columns[13], columns[14], columns[15]);
 //h
@@ -256,7 +258,7 @@ int main (int argc, char *argv[])
   float lon, lat, dist, az, baz;
   char fileABF[200], fileEAF[200], fileGMM[200], fileout[200];
   char buff[BUFFLEN];
-  char stationName[50]={0};
+  char stationName[100]={0};
   char **columns, **columns_header;
   char **columns2;
   char delim[] = ",";
@@ -313,8 +315,11 @@ int main (int argc, char *argv[])
       exit(1);
     }
     buff[strcspn(buff, "\n")] = 0;
+fprintf(stderr,"%s\n", buff);
     columns = NULL;
     cols_found = getcols(buff, delim, &columns);
+fprintf(stderr,"got cols\n", buff);
+fprintf(stderr,"col13: %s\n", columns[13]);
     assign_cols_ABF(columns, &stLon, &stLat, &vs30, &amp2s, &amp3s, &amp5s, &amp10s, stationName);
 //    fprintf(stderr,"%f %f %f %f %f %f %f %s\n", stLon, stLat, vs30, amp2s, amp3s, amp5s, amp10s, stationName);
     free(columns);
