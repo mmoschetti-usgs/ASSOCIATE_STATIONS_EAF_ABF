@@ -49,6 +49,7 @@ void assign_cols_ABF(char **columns, float *stLon, float *stLat, float *vs30, fl
   *amp5s=atof(columns[11]);
   *amp10s=atof(columns[12]);
   sprintf(stationName1,"%s\0",columns[13]);
+//  stationName1[strlen(stationName1)-1]='\0';
   stationName1[strlen(stationName1)-1]='\0';
   strcpy(stationNameMod,stationName1);
   remove_all_chars(stationNameMod,'"');
@@ -58,6 +59,7 @@ fprintf(stderr,"col13- %s END\n",columns[13]);
 fprintf(stderr,"col14- %s END\n",columns[14]);
 //fprintf(stderr,"col15- %s END\n",columns[15]);
     sprintf(stationNameMod,"%s %s\0",columns[13], columns[14]);
+//    stationNameMod[strlen(stationNameMod)-1]='\0';
     stationNameMod[strlen(stationNameMod)-1]='\0';
     remove_all_chars(stationName,'"');
   }
@@ -74,14 +76,17 @@ fprintf(stderr,"col14- %s END\n",columns[14]);
   remove_all_chars(stationNameMod,'.');
   remove_all_chars(stationNameMod,'-');
   remove_all_chars(stationNameMod,'"');
+  remove_all_chars(stationNameMod,'/');
   for(cnt=0; cnt<maxCharStNm; cnt++) {
     stationName[cnt]=stationNameMod[cnt];
   }
+//  stationName[maxCharStNm]='\0';
   stationName[maxCharStNm]='\0';
-  fprintf(stderr,"Station Name: %s %s\n", stationName, stationNameMod);
+  fprintf(stderr,"Station Name: %sEND %sEND\n", stationName, stationNameMod);
 //  fprintf(stderr,"%s_%s_%s\n", columns[13], columns[14], columns[15]);
 //h
   sprintf(fileout,"AMP_FILES/amp_%.3f_%.3f_CS_%s.txt",*stLon,*stLat,stationName);
+//  sprintf(fileout,"AMP_FILES/amp_%.3f_%.3f_CS.txt",*stLon,*stLat);
 //  fprintf(stderr,"%s\n", fileout);
   system("if [ ! -d AMP_FILES ]; then mkdir AMP_FILES; fi");
 //
@@ -318,8 +323,8 @@ int main (int argc, char *argv[])
 fprintf(stderr,"%s\n", buff);
     columns = NULL;
     cols_found = getcols(buff, delim, &columns);
-fprintf(stderr,"got cols\n", buff);
-fprintf(stderr,"col13: %s\n", columns[13]);
+fprintf(stderr,"got cols - %d\n", buff, cols_found);
+fprintf(stderr,"col1,13: %s %s\n", columns[1], columns[13]);
     assign_cols_ABF(columns, &stLon, &stLat, &vs30, &amp2s, &amp3s, &amp5s, &amp10s, stationName);
 //    fprintf(stderr,"%f %f %f %f %f %f %f %s\n", stLon, stLat, vs30, amp2s, amp3s, amp5s, amp10s, stationName);
     free(columns);
@@ -331,7 +336,6 @@ fprintf(stderr,"col13: %s\n", columns[13]);
     columns_header = NULL;
     cols_found = getcols(buff, delim, &columns_header);
     while( fgets(buff,BUFFLEN,fpEAF) ) {
-      strip(buff);
       columns = NULL;
       cols_found = getcols(buff, delim, &columns);
       assign_cols_EAF_GMM(columns, &lon, &lat);
@@ -342,14 +346,49 @@ fprintf(stderr,"col13: %s\n", columns[13]);
         write_values_EAF(columns_header,columns, lon, lat, cols_found);
         break;
       }
+//      strip(buff);
       free(columns);
     }
     rewind(fpEAF);
     free(columns_header);
-    free(columns);
+
+
+//  GMM file, loop to find matching location
+//  header information
+    fgets(buff,BUFFLEN,fpGMM);
+    buff[strcspn(buff, "\n")] = 0;
+    columns_header = NULL;
+    cols_found = getcols(buff, delim, &columns_header);
+    while( fgets(buff,BUFFLEN,fpGMM) ) {
+      columns = NULL;
+      cols_found = getcols(buff, delim, &columns);
+      assign_cols_EAF_GMM(columns, &lon, &lat);
+      delaz_(&stLat,&stLon,&lat,&lon,&dist,&az,&baz);
+      if ( fabs(stLat-lat)<0.001 && fabs(stLon-lon)<0.001 && dist<0.05 ) {
+        fprintf(stderr,"Match EAF: %f %f\n", stLon, stLat);
+//        fprintf(stderr,"MATCH: %f %f %f %f dist: %f\n", stLon, lon, stLat, lat, dist);
+        write_values_GMM(columns_header,columns, lon, lat, cols_found);
+        break;
+      }
+//      strip(buff);
+      free(columns);
+    }
+    rewind(fpGMM);
+    free(columns_header);
+
+
+/* REMOVE1 
+      if ( fabs(stLat-lat)<0.001 && fabs(stLon-lon)<0.001 && dist<0.05 ) {
+        fprintf(stderr,"Match EAF: %f %f\n", stLon, stLat);
+//        fprintf(stderr,"MATCH: %f %f %f %f dist: %f\n", stLon, lon, stLat, lat, dist);
+        write_values_EAF(columns_header,columns, lon, lat, cols_found);
+        break;
+      }
+REMOVE1 */
 
 // GMPE amp file, find matching location/coordinate
 //  header information
+/* REMOVE2
     fgets(buff,BUFFLEN,fpGMM);
 //fprintf(stderr,"buff %s", buff);
     buff[strcspn(buff, "\n")] = 0;
@@ -377,6 +416,7 @@ fprintf(stderr,"col13: %s\n", columns[13]);
     }
     rewind(fpGMM);
     free(columns_header);
+REMOVE2 */
 
 
 // loop through EAF file and extract 
