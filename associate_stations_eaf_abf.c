@@ -15,6 +15,7 @@ void delaz_(float *lat1, float *lon1, float *lat2, float *lon2, float *dist, flo
 int getcols( const char * const line, const char * const delim, char ***out_storage);
 void strip(char *s);
 void assign_cols_ABF(char **columns, float *stLon, float *stLat, float *vs30, float *amp2s, float *amp3s, float *amp5s, float *amp10s, char *stationName);
+void assign_cols_EAF_GMM(char **columns, float *stLon, float *stLat, float *z1_m);
 char * replace(char const * const original, char const * const pattern, char const * const replacement );
 void write_values_EAF(char **columns_header, char **columns, float stLon, float stLat, int cols_found);
 
@@ -96,11 +97,12 @@ fprintf(stderr,"col14- %s END\n",columns[14]);
 }
 
 /*--------------------------------------------------------------------------*/
-void assign_cols_EAF_GMM(char **columns, float *stLon, float *stLat)
+void assign_cols_EAF_GMM(char **columns, float *stLon, float *stLat, float *z1_m)
 /*--------------------------------------------------------------------------*/
 {
   *stLon=atof(columns[1]);
   *stLat=atof(columns[2]);
+  *z1_m=atof(columns[9]);
 //  sprintf(fileout,"AMP_FILES/amp_CS_%.3f_%.3f_%s.txt",*stLon,*stLat,stationName);
 //  fprintf(stderr,"%s\n", fileout);
 }
@@ -257,9 +259,10 @@ void strip(char *s)
 int main (int argc, char *argv[])
 /*--------------------------------------------------------------------------*/
 {
-  FILE *fpABF, *fpEAF, *fpGMM, *fpout;
-  int cols_found;
-  float stLon, stLat, vs30, amp2s, amp3s, amp5s, amp10s;
+  FILE *fpABF, *fpEAF, *fpGMM, *fpout, *fpDepth;
+  int cnt, cols_found;
+  float stLon, stLat, vs30, z1_m, amp2s, amp3s, amp5s, amp10s;
+  float junk;
   float lon, lat, dist, az, baz;
   char fileABF[200], fileEAF[200], fileGMM[200], fileout[200];
   char buff[BUFFLEN];
@@ -272,6 +275,7 @@ int main (int argc, char *argv[])
 /* CHECK INPUT ARGUMENTS */
   if ( argc != 4 ) {
     fprintf(stderr,"USAGE: %s [b-values, reference adjusted to Vs30=760 m/s] [EAF values] [GMPE values]\n", argv[0]);
+// REPACE
     fprintf(stderr,"Relocated catalog file, e.g., emm_c2_OK_KS_201702_add_all2.csv\n");
     exit(1);
   }
@@ -313,7 +317,12 @@ int main (int argc, char *argv[])
 // read header lines from CyberShake ABF file
   fgets(buff,BUFFLEN,fpABF);
 
+// add Z1 parameter to b-values
+  fpDepth=fopen("CyberShake_siteAmp_Mod_depths.csv","w");
+  fprintf(fpDepth,"FID,lon,lat,Vs30,Z1(m),2s_Amp,3s_Amp,5s_Amp,10s_Amp\n");
+
 // loop through all sites in CyberShake ABF file
+  cnt=0;
   while( fgets(buff,BUFFLEN,fpABF) ) {
     if ( strlen(buff) > BUFFLEN ) {
       fprintf(stderr,"Increase BUFFLEN from %d.\n", (int)BUFFLEN);
@@ -338,14 +347,17 @@ fprintf(stderr,"col1,13: %s %s\n", columns[1], columns[13]);
     while( fgets(buff,BUFFLEN,fpEAF) ) {
       columns = NULL;
       cols_found = getcols(buff, delim, &columns);
-      assign_cols_EAF_GMM(columns, &lon, &lat);
+      assign_cols_EAF_GMM(columns, &lon, &lat, &z1_m);
       delaz_(&stLat,&stLon,&lat,&lon,&dist,&az,&baz);
       if ( fabs(stLat-lat)<0.001 && fabs(stLon-lon)<0.001 && dist<0.05 ) {
         fprintf(stderr,"Match EAF: %f %f\n", stLon, stLat);
 //        fprintf(stderr,"MATCH: %f %f %f %f dist: %f\n", stLon, lon, stLat, lat, dist);
         write_values_EAF(columns_header,columns, lon, lat, cols_found);
+// writing file with CyberShake amplifications and basin depth
+        fprintf(fpDepth,"%d,%.3f,%.3f,%.0f,%.0f,%.4f,%.4f,%.4f,%.4f\n",cnt,stLon,stLat,vs30,z1_m,amp2s,amp3s,amp5s,amp10s);
         break;
       }
+      cnt+=1;
 //      strip(buff);
       free(columns);
     }
@@ -362,7 +374,7 @@ fprintf(stderr,"col1,13: %s %s\n", columns[1], columns[13]);
     while( fgets(buff,BUFFLEN,fpGMM) ) {
       columns = NULL;
       cols_found = getcols(buff, delim, &columns);
-      assign_cols_EAF_GMM(columns, &lon, &lat);
+      assign_cols_EAF_GMM(columns, &lon, &lat, &junk);
       delaz_(&stLat,&stLon,&lat,&lon,&dist,&az,&baz);
       if ( fabs(stLat-lat)<0.001 && fabs(stLon-lon)<0.001 && dist<0.05 ) {
         fprintf(stderr,"Match EAF: %f %f\n", stLon, stLat);
