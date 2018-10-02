@@ -1,5 +1,5 @@
 INST_DIR = $(HOME)/bin
-BIN  = associate_stations_eaf_abf
+BIN  = associate_stations_EAF_ABF
 
 # need to include the math library when the math.h header file is used
 #cflags = -O -lm
@@ -13,7 +13,7 @@ FC = gfortran
 CC = gcc
 
 DBG = 
-FOBJS = $(BIN).o read_line_fm_csvFile.o delaz.o
+FOBJS = associate_stations_eaf_abf.o read_line_fm_csvFile.o delaz.o
 
 $(BIN) : $(FOBJS)
 	$(CC) $(CFLAGS) $(FOBJS) -o $(BIN)
