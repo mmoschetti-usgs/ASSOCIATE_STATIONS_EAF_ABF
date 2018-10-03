@@ -50,23 +50,28 @@ void assign_cols_ABF(char **columns, float *stLon, float *stLat, float *vs30, fl
   *amp5s=atof(columns[11]);
   *amp10s=atof(columns[12]);
   sprintf(stationName1,"%s\0",columns[13]);
+//  fprintf(stderr,"stationName1: %s\n", stationName1);
 //  stationName1[strlen(stationName1)-1]='\0';
-  stationName1[strlen(stationName1)-1]='\0';
+//working
+//  stationName1[strlen(stationName1)-1]='\0';
+  stationName1[strlen(stationName1)]='\0';
   strcpy(stationNameMod,stationName1);
   remove_all_chars(stationNameMod,'"');
   if ( strlen(stationName1) > strlen(stationNameMod) ) {
     fprintf(stderr,"Multiple columns: %d %d\n", strlen(stationName1), strlen(stationName));
-fprintf(stderr,"col13- %s END\n",columns[13]);
-fprintf(stderr,"col14- %s END\n",columns[14]);
+//fprintf(stderr,"col13- %s END\n",columns[13]);
+//fprintf(stderr,"col14- %s END\n",columns[14]);
 //fprintf(stderr,"col15- %s END\n",columns[15]);
-    sprintf(stationNameMod,"%s %s\0",columns[13], columns[14]);
+//    fprintf(stderr,"col13,14: %s %s\n",columns[13], columns[14]);
+    sprintf(stationNameMod,"%s%s\0",columns[13], columns[14]);
 //    stationNameMod[strlen(stationNameMod)-1]='\0';
     stationNameMod[strlen(stationNameMod)-1]='\0';
     remove_all_chars(stationName,'"');
   }
-  else {
+/*  else {
     fprintf(stderr,"col13- %s END\n",columns[13]);
   }
+*/
 
 // write ABF values to file--b-values with respect to GMPE (adjusted to Vs30=760 m/s)
 // modify station names to remove blank space, other characters
@@ -83,7 +88,8 @@ fprintf(stderr,"col14- %s END\n",columns[14]);
   }
 //  stationName[maxCharStNm]='\0';
   stationName[maxCharStNm]='\0';
-  fprintf(stderr,"Station Name: %sEND %sEND\n", stationName, stationNameMod);
+//  fprintf(stderr,"Station Name: %sEND %sEND\n", stationName, stationNameMod);
+  fprintf(stderr,"Station Name: %s\n", stationNameMod);
 //  fprintf(stderr,"%s_%s_%s\n", columns[13], columns[14], columns[15]);
 //h
   sprintf(fileout,"AMP_FILES/amp_%.3f_%.3f_CS_%s.txt",*stLon,*stLat,stationName);
@@ -184,6 +190,7 @@ void write_values_EAF(char **columns_header, char **columns, float stLon, float 
 
 // loop over all column headers
 // REMOVE
+//fprintf(stderr,"cols_found=%d\n", cols_found);
   for(cnt=0;cnt<cols_found;cnt++) {
 //  for(cnt=0;cnt<15;cnt++) {
 // remove double quotes
@@ -226,6 +233,7 @@ void write_values_EAF(char **columns_header, char **columns, float stLon, float 
   sprintf(fileout,"AMP_FILES/amp_%.3f_%.3f_EAF.txt",stLon,stLat);
 //  fprintf(stderr,"%s\n", fileout);
   fid=fopen(fileout,"w");
+//fprintf(stderr,"cntMean=%d\n", cntMean);
   for(cnt=0; cnt<cntMean; cnt++) {
 //    fprintf(stderr,"%f %f %f %f\n", per_arr[cnt], perS_arr[cnt], meanVal_arr[cnt], stdVal_arr[cnt]);
     if ( stdVal_arr[cnt]>0 ) {
@@ -330,11 +338,11 @@ int main (int argc, char *argv[])
       exit(1);
     }
     buff[strcspn(buff, "\n")] = 0;
-fprintf(stderr,"%s\n", buff);
+//fprintf(stderr,"%s\n", buff);
     columns = NULL;
     cols_found = getcols(buff, delim, &columns);
-fprintf(stderr,"got cols - %s %d\n", buff, cols_found);
-fprintf(stderr,"col1,13: %s %s\n", columns[1], columns[13]);
+//fprintf(stderr,"got cols - %s %d\n", buff, cols_found);
+//fprintf(stderr,"col1,13: %s %s\n", columns[1], columns[13]);
     assign_cols_ABF(columns, &stLon, &stLat, &vs30, &amp2s, &amp3s, &amp5s, &amp10s, stationName);
 //    fprintf(stderr,"%f %f %f %f %f %f %f %s\n", stLon, stLat, vs30, amp2s, amp3s, amp5s, amp10s, stationName);
     free(columns);
@@ -351,22 +359,24 @@ fprintf(stderr,"col1,13: %s %s\n", columns[1], columns[13]);
       cols_found = getcols(buff, delim, &columns);
       assign_cols_EAF_GMM(columns, &lon, &lat, &z1_m);
       delaz_(&stLat,&stLon,&lat,&lon,&dist,&az,&baz);
-      fprintf(stderr,"%.3f %.3f %.3f %.3f %.2f\n", stLat, lat, stLon, lon, dist);
+//      fprintf(stderr,"%.3f %.3f %.3f %.3f %.2f\n", stLat, lat, stLon, lon, dist);
       if ( fabs(stLat-lat)<0.001 && fabs(stLon-lon)<0.001 && dist<0.05 ) {
-        fprintf(stderr,"Match EAF: %f %f\n", stLon, stLat);
+//        fprintf(stderr,"lat: %.3f %.3f lon: %.3f %.3f dist: %.2f\n", stLat, lat, stLon, lon, dist);
+//        fprintf(stderr,"Match EAF: %f %f\n", stLon, stLat);
 //        fprintf(stderr,"MATCH: %f %f %f %f dist: %f\n", stLon, lon, stLat, lat, dist);
         write_values_EAF(columns_header,columns, lon, lat, cols_found);
+// REMOVE HERE
 // writing file with CyberShake amplifications and basin depth
         fprintf(fpDepth,"%d,%.3f,%.3f,%.0f,%.0f,%.4f,%.4f,%.4f,%.4f\n",cnt,stLon,stLat,vs30,z1_m,amp2s,amp3s,amp5s,amp10s);
         matchEAF=1;
         break;
       }
-      cnt+=1;
 //      strip(buff);
       free(columns);
     }
     rewind(fpEAF);
     free(columns_header);
+    cnt+=1;
     if (matchEAF==0) {
       fprintf(stderr,"No match %d\n", cnt-1);
       exit(1);
@@ -385,7 +395,7 @@ fprintf(stderr,"col1,13: %s %s\n", columns[1], columns[13]);
       assign_cols_EAF_GMM(columns, &lon, &lat, &junk);
       delaz_(&stLat,&stLon,&lat,&lon,&dist,&az,&baz);
       if ( fabs(stLat-lat)<0.001 && fabs(stLon-lon)<0.001 && dist<0.05 ) {
-        fprintf(stderr,"Match EAF: %f %f\n", stLon, stLat);
+        fprintf(stderr,"Match GMM: %f %f\n", stLon, stLat);
 //        fprintf(stderr,"MATCH: %f %f %f %f dist: %f\n", stLon, lon, stLat, lat, dist);
         write_values_GMM(columns_header,columns, lon, lat, cols_found);
         break;
@@ -395,49 +405,6 @@ fprintf(stderr,"col1,13: %s %s\n", columns[1], columns[13]);
     }
     rewind(fpGMM);
     free(columns_header);
-
-
-/* REMOVE1 
-      if ( fabs(stLat-lat)<0.001 && fabs(stLon-lon)<0.001 && dist<0.05 ) {
-        fprintf(stderr,"Match EAF: %f %f\n", stLon, stLat);
-//        fprintf(stderr,"MATCH: %f %f %f %f dist: %f\n", stLon, lon, stLat, lat, dist);
-        write_values_EAF(columns_header,columns, lon, lat, cols_found);
-        break;
-      }
-REMOVE1 */
-
-// GMPE amp file, find matching location/coordinate
-//  header information
-/* REMOVE2
-    fgets(buff,BUFFLEN,fpGMM);
-//fprintf(stderr,"buff %s", buff);
-    buff[strcspn(buff, "\n")] = 0;
-    columns_header = NULL;
-//fprintf(stderr,"HERE 1\n");
-    cols_found = getcols(buff, delim, &columns_header);
-//fprintf(stderr,"HERE 2\n");
-    while( fgets(buff,BUFFLEN,fpGMM) ) {
-//fprintf(stderr,"buff %s", buff);
-      strip(buff);
-      columns = NULL;
-      cols_found = getcols(buff, delim, &columns);
-//      fprintf(stderr,"Reading columns from BSSA... ");
-      assign_cols_EAF_GMM(columns, &lon, &lat);
-//      fprintf(stderr,"%s\n", columns); 
-//      fprintf(stderr,"... Read columns from BSSA... %f %f\n", lon, lat);
-      delaz_(&stLat,&stLon,&lat,&lon,&dist,&az,&baz);
-      if ( fabs(stLat-lat)<0.001 && fabs(stLon-lon)<0.001 && dist<0.05 ) {
-//        fprintf(stderr,"MATCH: %f %f %f %f dist: %f\n", stLon, lon, stLat, lat, dist);
-        write_values_GMM(columns_header,columns, lon, lat, cols_found);
-        fprintf(stderr,"Match GMM: %f %f\n", stLon, stLat);
-        break;
-      }
-      free(columns);
-    }
-    rewind(fpGMM);
-    free(columns_header);
-REMOVE2 */
-
 
 // loop through EAF file and extract 
   }
