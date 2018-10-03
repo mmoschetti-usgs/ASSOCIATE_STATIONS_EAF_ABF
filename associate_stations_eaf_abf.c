@@ -261,6 +261,7 @@ int main (int argc, char *argv[])
 {
   FILE *fpABF, *fpEAF, *fpGMM, *fpout, *fpDepth;
   int cnt, cols_found;
+  int matchEAF;
   float stLon, stLat, vs30, z1_m, amp2s, amp3s, amp5s, amp10s;
   float junk;
   float lon, lat, dist, az, baz;
@@ -332,7 +333,7 @@ int main (int argc, char *argv[])
 fprintf(stderr,"%s\n", buff);
     columns = NULL;
     cols_found = getcols(buff, delim, &columns);
-fprintf(stderr,"got cols - %d\n", buff, cols_found);
+fprintf(stderr,"got cols - %s %d\n", buff, cols_found);
 fprintf(stderr,"col1,13: %s %s\n", columns[1], columns[13]);
     assign_cols_ABF(columns, &stLon, &stLat, &vs30, &amp2s, &amp3s, &amp5s, &amp10s, stationName);
 //    fprintf(stderr,"%f %f %f %f %f %f %f %s\n", stLon, stLat, vs30, amp2s, amp3s, amp5s, amp10s, stationName);
@@ -344,17 +345,20 @@ fprintf(stderr,"col1,13: %s %s\n", columns[1], columns[13]);
     buff[strcspn(buff, "\n")] = 0;
     columns_header = NULL;
     cols_found = getcols(buff, delim, &columns_header);
+    matchEAF=0;
     while( fgets(buff,BUFFLEN,fpEAF) ) {
       columns = NULL;
       cols_found = getcols(buff, delim, &columns);
       assign_cols_EAF_GMM(columns, &lon, &lat, &z1_m);
       delaz_(&stLat,&stLon,&lat,&lon,&dist,&az,&baz);
+      fprintf(stderr,"%.3f %.3f %.3f %.3f %.2f\n", stLat, lat, stLon, lon, dist);
       if ( fabs(stLat-lat)<0.001 && fabs(stLon-lon)<0.001 && dist<0.05 ) {
         fprintf(stderr,"Match EAF: %f %f\n", stLon, stLat);
 //        fprintf(stderr,"MATCH: %f %f %f %f dist: %f\n", stLon, lon, stLat, lat, dist);
         write_values_EAF(columns_header,columns, lon, lat, cols_found);
 // writing file with CyberShake amplifications and basin depth
         fprintf(fpDepth,"%d,%.3f,%.3f,%.0f,%.0f,%.4f,%.4f,%.4f,%.4f\n",cnt,stLon,stLat,vs30,z1_m,amp2s,amp3s,amp5s,amp10s);
+        matchEAF=1;
         break;
       }
       cnt+=1;
@@ -363,6 +367,10 @@ fprintf(stderr,"col1,13: %s %s\n", columns[1], columns[13]);
     }
     rewind(fpEAF);
     free(columns_header);
+    if (matchEAF==0) {
+      fprintf(stderr,"No match %d\n", cnt-1);
+      exit(1);
+    }
 
 
 //  GMM file, loop to find matching location
