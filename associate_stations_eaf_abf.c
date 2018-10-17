@@ -83,6 +83,7 @@ void assign_cols_ABF(char **columns, float *stLon, float *stLat, float *vs30, fl
   remove_all_chars(stationNameMod,'-');
   remove_all_chars(stationNameMod,'"');
   remove_all_chars(stationNameMod,'/');
+  remove_all_chars(stationNameMod,'#');
   for(cnt=0; cnt<maxCharStNm; cnt++) {
     stationName[cnt]=stationNameMod[cnt];
   }
