@@ -268,13 +268,13 @@ void strip(char *s)
 int main (int argc, char *argv[])
 /*--------------------------------------------------------------------------*/
 {
-  FILE *fpABF, *fpEAF, *fpGMM, *fpout, *fpDepth;
+  FILE *fpABF, *fpEAF, *fpGMM, *fpout, *fpDepth, *fpDepthTmp;
   int cnt, cols_found;
   int matchEAF;
   float stLon, stLat, vs30, z1_m, amp2s, amp3s, amp5s, amp10s;
   float junk;
   float lon, lat, dist, az, baz;
-  char fileABF[200], fileEAF[200], fileGMM[200], fileout[200];
+  char fileABF[200], fileEAF[200], fileGMM[200], fileout[200], fileDepthTmp[200];
   char buff[BUFFLEN];
   char stationName[100]={0};
   char **columns, **columns_header;
@@ -369,6 +369,10 @@ int main (int argc, char *argv[])
 // REMOVE HERE
 // writing file with CyberShake amplifications and basin depth
         fprintf(fpDepth,"%d,%.3f,%.3f,%.0f,%.0f,%.4f,%.4f,%.4f,%.4f\n",cnt,stLon,stLat,vs30,z1_m,amp2s,amp3s,amp5s,amp10s);
+        sprintf(fileDepthTmp,"AMP_FILES/depth_%.3f_%.3f.txt",stLon,stLat);
+        fpDepthTmp=fopen(fileDepthTmp,"w");
+        fprintf(fpDepthTmp,"%.1f\n",z1_m);
+        fclose(fpDepthTmp);
         matchEAF=1;
         break;
       }
